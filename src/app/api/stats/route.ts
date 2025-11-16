@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getResultSummary, getMatchDetail } from '@/lib/playcricket';
 import { unstable_cache } from 'next/cache';
+import { parse, format } from 'date-fns';
 
 // Enable Next.js caching - revalidate every hour (3600 seconds)
 export const revalidate = 3600;
@@ -36,9 +37,21 @@ interface BowlingStats {
   };
 }
 
+interface KeyPerformanceStats {
+  match_id: string;
+  player_id: string;
+  player_name: string;
+  known_as?: string;
+  match_date: Date;
+  opposition: string;
+  key_stat?: number | string;
+  type: 'century' | 'five_wicket';
+}
+
 async function processMatchesForSeason(matchIds: string[], clubId: string, apiKey: string) {
   const battingStats: BattingStats = {};
   const bowlingStats: BowlingStats = {};
+  const keyPerformanceStats: KeyPerformanceStats[] = [];
 
   for (const matchId of matchIds) {
     try {
@@ -57,6 +70,11 @@ async function processMatchesForSeason(matchIds: string[], clubId: string, apiKe
         console.warn(`Match ${matchId} does not involve club ${clubId}, skipping...`);
         continue;
       }
+
+      const oppositionClubName =
+        match.home_club_id === clubId
+          ? match.away_club_name || match.away_team_name || 'Gary Flanders CC'
+          : match.home_club_name || match.home_team_name || 'Gary Flanders CC';    
 
       // Process each innings
       for (const innings of match.innings) {
@@ -108,6 +126,16 @@ async function processMatchesForSeason(matchIds: string[], clubId: string, apiKe
             }
             if (runs >= 100) {
               battingStats[playerId].hundreds += 1;
+              keyPerformanceStats.push({
+                match_id: matchIdStr,
+                player_id: playerId,
+                player_name: playerName,
+                known_as: playerName,
+                match_date: parse( match.match_date, "dd/MM/yyyy", new Date() ) || 'Unknown',
+                opposition: oppositionClubName,
+                key_stat: runs,
+                type: 'century',
+              });
             }
           }
         }
@@ -190,7 +218,15 @@ async function processMatchesForSeason(matchIds: string[], clubId: string, apiKe
     };
   });
 
-  return { batting, bowling };
+  // Sort key performances by date
+  const key_performances = keyPerformanceStats
+    .sort((a, b) => a.match_date.getTime() - b.match_date.getTime())
+    .map(performance => ({
+      ...performance,
+      match_date: format(performance.match_date, 'dd MMMM yyyy'),
+    }));
+
+  return { batting, bowling, key_performances };
 }
 
 export async function GET(request: NextRequest) {
@@ -253,7 +289,7 @@ export async function GET(request: NextRequest) {
               name: clubId === '27452' ? 'Old Imperials CC' : 'Imperial College Union CC',
               shortName: clubId === '27452' ? 'OICC' : 'ICUCC',
             },
-            allTime: { batting: [], bowling: [] },
+            allTime: { batting: [], bowling: [], key_performances: [] },
             seasons: [],
           };
         }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { format } from 'date-fns';
 
 interface PlayerStat {
   player_id?: string;
@@ -26,11 +27,23 @@ interface PlayerStat {
   match_ids?: string[];
 }
 
+interface KeyPerformance {
+  match_id: string;
+  player_id: string;
+  player_name: string;
+  known_as?: string;
+  match_date: string;
+  opposition: string;
+  key_stat: number;
+  type: 'century' | 'five_wicket';
+}
+
 interface SeasonStats {
   season: string;
   stats: {
     batting?: PlayerStat[];
     bowling?: PlayerStat[];
+    key_performances?: KeyPerformance[];
   };
 }
 
@@ -42,12 +55,70 @@ interface HonoursData {
   allTime: {
     batting?: PlayerStat[];
     bowling?: PlayerStat[];
+    key_performances?: KeyPerformance[];
   };
   seasons: SeasonStats[];
 }
 
 interface HonoursBoardProps {
   clubId: string;
+}
+
+function EventsTable({
+  title,
+  events,
+  getPlayCricketUrl
+}: {
+  title: string;
+  events: KeyPerformance[];
+  getPlayCricketUrl: (matchId: string) => string;
+}) {
+  return (
+    <section className="bg-white rounded-lg shadow-lg p-8 border-t-4 border-yellow-500">
+      <h3 className="text-2xl font-bold mb-6 text-blue-800 border-b-2 border-blue-700 pb-2">
+        {title}
+      </h3>
+      {events.length > 0 ? (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-blue-100">
+                <th className="px-4 py-2 text-left text-blue-900">Player</th>
+                <th className="px-4 py-2 text-left text-blue-900">Date</th>
+                <th className="px-4 py-2 text-left text-blue-900">Opposition</th>
+                <th className="px-4 py-2 text-right text-blue-900">Stat</th>
+              </tr>
+            </thead>
+            <tbody>
+              {events.map((event, index) => (
+                <tr key={event.match_id || index} className="border-b hover:bg-blue-50">
+                  <td className="px-4 py-3">
+                    {event.match_id ? (
+                      <a
+                      href={getPlayCricketUrl(event.match_id)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-700 hover:text-blue-900 hover:underline font-medium"
+                      >
+                        {event.known_as || event.player_name}
+                      </a>
+                    ) : (
+                      <span>{event.known_as || event.player_name}</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">{event.match_date}</td>
+                  <td className="px-4 py-3">{event.opposition}</td>
+                  <td className="px-4 py-3 text-right font-semibold">{event.key_stat}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="text-gray-500 text-center py-4">No events available</p>
+      )}
+    </section>
+  );
 }
 
 function StatsTable({
@@ -233,6 +304,12 @@ export default function HonoursBoard({ clubId }: HonoursBoardProps) {
     ?.sort((a, b) => (b.wickets || 0) - (a.wickets || 0))
     ?.slice(0, 10) || [];
 
+  const allTimeCenturions = data.allTime.key_performances
+    ?.filter(p => p.type === 'century')
+
+  const allTimeFiveWicketHauls = data.allTime.key_performances
+    ?.filter(p => p.type === 'five_wicket')
+
   return (
     <div className="space-y-12">
       <div className="text-center">
@@ -247,6 +324,11 @@ export default function HonoursBoard({ clubId }: HonoursBoardProps) {
         <h2 className="text-3xl font-bold text-center text-blue-900 pt-8 border-t-4 border-yellow-500">
           All Time
         </h2>
+        <EventsTable
+          title="Centuries"
+          events={allTimeCenturions || []}
+          getPlayCricketUrl={getPlayCricketUrl}
+        />
         <StatsTable
           title="All Time"
           topBatsmen={allTimeTopBatsmen}
