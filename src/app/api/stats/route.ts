@@ -45,7 +45,7 @@ interface KeyPerformanceStats {
   match_date: Date;
   opposition: string;
   key_stat?: number | string;
-  type: 'century' | 'five_wicket';
+  performance_type: 'century' | 'five_wicket';
 }
 
 async function processMatchesForSeason(matchIds: string[], clubId: string, apiKey: string) {
@@ -74,7 +74,10 @@ async function processMatchesForSeason(matchIds: string[], clubId: string, apiKe
       const oppositionClubName =
         match.home_club_id === clubId
           ? match.away_club_name || match.away_team_name || 'Gary Flanders CC'
-          : match.home_club_name || match.home_team_name || 'Gary Flanders CC';    
+          : match.home_club_name || match.home_team_name || 'Gary Flanders CC';   
+          
+      const matchDateParsed =
+        parse( match.match_date, "dd/MM/yyyy", new Date() ) || 'Unknown'
 
       // Process each innings
       for (const innings of match.innings) {
@@ -131,10 +134,10 @@ async function processMatchesForSeason(matchIds: string[], clubId: string, apiKe
                 player_id: playerId,
                 player_name: playerName,
                 known_as: playerName,
-                match_date: parse( match.match_date, "dd/MM/yyyy", new Date() ) || 'Unknown',
+                match_date: matchDateParsed,
                 opposition: oppositionClubName,
                 key_stat: runs,
-                type: 'century',
+                performance_type: 'century',
               });
             }
           }
@@ -177,6 +180,16 @@ async function processMatchesForSeason(matchIds: string[], clubId: string, apiKe
 
             if (wickets >= 5) {
               bowlingStats[playerId].five_wickets += 1;
+              keyPerformanceStats.push({
+                match_id: matchIdStr,
+                player_id: playerId,
+                player_name: playerName,
+                known_as: playerName,
+                match_date: matchDateParsed,
+                opposition: oppositionClubName,
+                key_stat: `${wickets} - ${runs}`,
+                performance_type: 'five_wicket',
+              });
             }
           }
         }

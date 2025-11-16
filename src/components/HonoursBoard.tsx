@@ -35,7 +35,7 @@ interface KeyPerformance {
   match_date: string;
   opposition: string;
   key_stat: number;
-  type: 'century' | 'five_wicket';
+  performance_type: 'century' | 'five_wicket';
 }
 
 interface SeasonStats {
@@ -67,10 +67,12 @@ interface HonoursBoardProps {
 function EventsTable({
   title,
   events,
+  keyStatLabel = "Stat",
   getPlayCricketUrl
 }: {
   title: string;
   events: KeyPerformance[];
+  keyStatLabel: string;
   getPlayCricketUrl: (matchId: string) => string;
 }) {
   return (
@@ -85,8 +87,8 @@ function EventsTable({
               <tr className="bg-blue-100">
                 <th className="px-4 py-2 text-left text-blue-900">Player</th>
                 <th className="px-4 py-2 text-left text-blue-900">Date</th>
-                <th className="px-4 py-2 text-left text-blue-900">Opposition</th>
-                <th className="px-4 py-2 text-right text-blue-900">Stat</th>
+                <th className="px-4 py-2 text-left text-blue-900">Achieved Against</th>
+                <th className="px-4 py-2 text-right text-blue-900">{keyStatLabel}</th>
               </tr>
             </thead>
             <tbody>
@@ -115,7 +117,7 @@ function EventsTable({
           </table>
         </div>
       ) : (
-        <p className="text-gray-500 text-center py-4">No events available</p>
+        <p className="text-gray-500 text-center py-4">None available (so far...?)</p>
       )}
     </section>
   );
@@ -305,10 +307,10 @@ export default function HonoursBoard({ clubId }: HonoursBoardProps) {
     ?.slice(0, 10) || [];
 
   const allTimeCenturions = data.allTime.key_performances
-    ?.filter(p => p.type === 'century')
+    ?.filter(p => p.performance_type === 'century')
 
   const allTimeFiveWicketHauls = data.allTime.key_performances
-    ?.filter(p => p.type === 'five_wicket')
+    ?.filter(p => p.performance_type === 'five_wicket')
 
   return (
     <div className="space-y-12">
@@ -327,6 +329,13 @@ export default function HonoursBoard({ clubId }: HonoursBoardProps) {
         <EventsTable
           title="Centuries"
           events={allTimeCenturions || []}
+          keyStatLabel='Runs'
+          getPlayCricketUrl={getPlayCricketUrl}
+        />
+        <EventsTable
+          title="Five Wicket Hauls"
+          events={allTimeFiveWicketHauls || []}
+          keyStatLabel='Figures'
           getPlayCricketUrl={getPlayCricketUrl}
         />
         <StatsTable
