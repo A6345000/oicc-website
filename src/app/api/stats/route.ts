@@ -37,16 +37,24 @@ interface BowlingStats {
   };
 }
 
-interface KeyPerformanceStats {
+interface BaseKeyPerformanceStats {
   match_id: string;
   player_id: string;
   player_name: string;
   known_as?: string;
   match_date: Date;
   opposition: string;
-  key_stat?: number | string;
-  performance_type: 'century' | 'five_wicket';
 }
+
+type KeyPerformanceStats = 
+  | (BaseKeyPerformanceStats & {
+      performance_type: 'century';
+      key_stat: number; 
+    })
+  | (BaseKeyPerformanceStats & {
+      performance_type: 'five_wicket';
+      key_stat: string; 
+    });
 
 async function processMatchesForSeason(matchIds: string[], clubId: string, apiKey: string) {
   const battingStats: BattingStats = {};
@@ -77,7 +85,7 @@ async function processMatchesForSeason(matchIds: string[], clubId: string, apiKe
           : match.home_club_name || match.home_team_name || 'Gary Flanders CC';   
           
       const matchDateParsed =
-        parse( match.match_date, "dd/MM/yyyy", new Date() ) || 'Unknown'
+        parse( match.match_date, "dd/MM/yyyy", new Date() ) || new Date(0);
 
       // Process each innings
       for (const innings of match.innings) {
@@ -307,9 +315,9 @@ export async function GET(request: NextRequest) {
           };
         }
 
-        // Process all-time stats (use first 50 matches across all seasons)
+        // Process all-time stats (use first 75 matches across all seasons)
         const allTimeStats = await processMatchesForSeason(
-          allMatchIds.slice(0, 50),
+          allMatchIds.slice(0, 75),
           clubId,
           apiKey
         );

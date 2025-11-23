@@ -27,23 +27,31 @@ interface PlayerStat {
   match_ids?: string[];
 }
 
-interface KeyPerformance {
+interface BaseKeyPerformanceStat {
   match_id: string;
   player_id: string;
   player_name: string;
   known_as?: string;
   match_date: string;
   opposition: string;
-  key_stat: number;
-  performance_type: 'century' | 'five_wicket';
 }
+
+type KeyPerformanceStat = 
+  | (BaseKeyPerformanceStat & {
+      performance_type: 'century';
+      key_stat: number; 
+    })
+  | (BaseKeyPerformanceStat & {
+      performance_type: 'five_wicket';
+      key_stat: string; 
+    });
 
 interface SeasonStats {
   season: string;
   stats: {
     batting?: PlayerStat[];
     bowling?: PlayerStat[];
-    key_performances?: KeyPerformance[];
+    key_performances?: KeyPerformanceStat[];
   };
 }
 
@@ -55,7 +63,7 @@ interface HonoursData {
   allTime: {
     batting?: PlayerStat[];
     bowling?: PlayerStat[];
-    key_performances?: KeyPerformance[];
+    key_performances?: KeyPerformanceStat[];
   };
   seasons: SeasonStats[];
 }
@@ -71,7 +79,7 @@ function EventsTable({
   getPlayCricketUrl
 }: {
   title: string;
-  events: KeyPerformance[];
+  events: KeyPerformanceStat[];
   keyStatLabel: string;
   getPlayCricketUrl: (matchId: string) => string;
 }) {
